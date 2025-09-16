@@ -1,36 +1,39 @@
-name: CMake Build and Artifact Upload
+name: CMake Build (Windows + Clang-cl + Ninja)
 
 on:
   push:
-    branches:
-      - main
   pull_request:
-    branches:
-      - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest # Or your preferred runner environment (windows-latest, macos-latest)
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        config: [x64-Clang-Debug, x64-Clang-Release]
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repository with submodules
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: Create Build Directory
-        run: mkdir build
+      - name: Install dependencies
+        run: choco install ninja -y
 
       - name: Configure CMake
-        working-directory: build
-        run: cmake ..
+        run: |
+          cmake -S . -B "out/build/${{ matrix.config }}" `
+            -G Ninja `
+            -DCMAKE_BUILD_TYPE=${{ matrix.config == 'x64-Clang-Debug' && 'Debug' || 'RelWithDebInfo' }} `
+            -DVCPKG_TARGET_TRIPLET=x64-windows `
+            -DCMAKE_INSTALL_PREFIX="out/install/${{ matrix.config }}"
 
-      - name: Build Project
-        working-directory: build
-        run: cmake --build . --config Release # Or Debug, RelWithDebInfo, etc.
+      - name: Build
+        run: cmake --build "out/build/${{ matrix.config }}" --config ${{ matrix.config }}
 
-      - name: Upload Artifacts
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: my-project-artifacts # Name for your uploaded artifact
-          path: build/* # Path to the built executable or other artifacts
-          # You can specify multiple paths, e.g., 'build/my_executable', 'build/libraries/*'
-          # retention-days: 7 # Optional: Specify how long to retain the artifact (default is 90 days)
+          name: ${{ matrix.config }}-artifacts
+          path: out/build/${{ matrix.config }}
