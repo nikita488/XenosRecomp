@@ -1,0 +1,36 @@
+name: CMake Build and Artifact Upload
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # Or your preferred runner environment (windows-latest, macos-latest)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Build Directory
+        run: mkdir build
+
+      - name: Configure CMake
+        working-directory: build
+        run: cmake ..
+
+      - name: Build Project
+        working-directory: build
+        run: cmake --build . --config Release # Or Debug, RelWithDebInfo, etc.
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: my-project-artifacts # Name for your uploaded artifact
+          path: build/* # Path to the built executable or other artifacts
+          # You can specify multiple paths, e.g., 'build/my_executable', 'build/libraries/*'
+          # retention-days: 7 # Optional: Specify how long to retain the artifact (default is 90 days)
